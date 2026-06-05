@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────
+# Studio Prime — repository ignore rules
+# This repo ships PROMPTS. The files below are either runtime state
+# that Studio Prime generates inside *target* projects, secrets, or
+# internal scaffolding that must never enter the public repo.
+# ─────────────────────────────────────────────────────────────
+
+# Studio Prime runtime state (generated in the projects the agent builds — never committed here)
+.studio/
+.tmp/
+architecture/phase_snapshots/
+design-system/MASTER.md
+
+# Secrets & environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Internal scaffolding / process docs (kept out of the public repo)
+claude.md
+gemini.md
+findings.md
+progress.md
+task_plan.md
+check_hardening*.ps1
+evolution.zip
+
+# Dependencies & build output (for any example projects)
+node_modules/
+__pycache__/
+*.pyc
+dist/
+build/
+target/
+coverage/
+
+# OS & editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
