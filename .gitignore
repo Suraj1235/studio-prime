@@ -19,6 +19,7 @@ design-system/MASTER.md
 *.key
 
 # Internal scaffolding / process docs (kept out of the public repo)
+.claude/
 claude.md
 gemini.md
 findings.md

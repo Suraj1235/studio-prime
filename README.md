@@ -11,11 +11,11 @@
 
 <div align="center">
 
-<img alt="Hand the agent a PRD + your API keys. Walk away. Come back to a deployed product." src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&duration=2600&pause=900&color=8B5CF6&center=true&vCenter=true&width=640&lines=Hand+the+agent+a+PRD+%2B+your+API+keys.;Walk+away.;Come+back+to+a+deployed+product.;while+(you.sleep())+%7B+studio.ship()%3B+%7D" />
+<img alt="Hand the agent a PRD + your API keys. Walk away. Come back to a live product." src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&duration=2600&pause=900&color=8B5CF6&center=true&vCenter=true&width=640&lines=Hand+the+agent+a+PRD+%2B+your+API+keys.;Walk+away.;Come+back+to+a+live+product.;while+(you.sleep())+%7B+studio.ship()%3B+%7D" />
 
-**A Production-Grade AI Operating System, masquerading as a superprompt.**
+**A full production engineering pipeline, packed into a single superprompt.**
 
-![License: MIT](https://img.shields.io/badge/LICENSE-MIT-22c55e?style=for-the-badge) ![Version](https://img.shields.io/badge/VERSION-5.5-3b82f6?style=for-the-badge) ![Platforms](https://img.shields.io/badge/PLATFORMS-6-f97316?style=for-the-badge) ![Sleep Test](https://img.shields.io/badge/SLEEP_TEST-PASSING-22c55e?style=for-the-badge)
+![License: MIT](https://img.shields.io/badge/LICENSE-MIT-22c55e?style=for-the-badge) ![Platforms](https://img.shields.io/badge/PLATFORMS-6-f97316?style=for-the-badge) ![Sleep Test](https://img.shields.io/badge/SLEEP_TEST-PASSING-22c55e?style=for-the-badge)
 
 ![Made of](https://img.shields.io/badge/MADE_OF-100%25_MARKDOWN-8b5cf6?style=for-the-badge&logo=markdown&logoColor=white) ![Hallucinated tools](https://img.shields.io/badge/HALLUCINATED_TOOLS-0-22c55e?style=for-the-badge) ![PRs](https://img.shields.io/badge/PRS-WELCOME-ec4899?style=for-the-badge)
 
@@ -29,9 +29,9 @@
 
 Every prime in this repo is engineered to pass one brutal benchmark:
 
-> **You type `Start Studio Prime`, answer one intake question, hand over a PRD + API keys, and go to sleep. You wake up to a finished, tested, documented, *deployed* product — not a plausible-looking pile of stubs.**
+> **You type `Start Studio Prime`, answer one intake question, hand over a PRD + API keys, and go to sleep. You wake up to a *live* product — a working deployed URL when you handed over hosting credentials, or a fully functional product with its localhost server *still running* (URL + PID documented) when you didn't — not a plausible-looking pile of stubs.**
 
-No stalls. No infinite loops. No silent give-ups. No *"I have completed the implementation"* with predicted-but-never-executed test output. Every claim of success is backed by **proof-of-work**: real terminal output, executed E2E tests, a live deployment that survived smoke tests.
+No stalls. No infinite loops. No silent give-ups. No *"I have completed the implementation"* with predicted-but-never-executed test output. Every claim of success is backed by **proof-of-work**: real terminal output, executed E2E tests, and a live end-state — a deployed URL that survived smoke tests (creds provided), or a still-running localhost server that passed the full smoke suite (no creds). A deployable-but-dark artifact is *not* a passing Sleep Test.
 
 ---
 
@@ -47,7 +47,7 @@ It is pure prompt engineering — **zero dependencies, zero installs, 100% Markd
 | Review | 🪞 self-review in same context | 🕶️ blinded 3-round adversarial sub-agent debate |
 | Failure | 🔁 infinite retry or give-up | 🧯 5-cycle bounded repair → auto-isolate → continue |
 | Memory | 🧠 context window (amnesia) | 💾 `.studio/` state tree, survives crashes & platform hops |
-| Done = | "looks done" | 😴 Sleep-Test-deployed + 17-section `HANDOFF.md` |
+| Done = | "looks done" | 😴 live at handoff (deployed URL *or* still-running localhost + PID) + 17-section `HANDOFF.md` |
 
 ---
 
@@ -67,7 +67,7 @@ cp codex_prime.md AGENTS.md
 cp openclaw_prime.md AGENTS.md                 cp antigravity_prime.md AGENTS.md
 
 # Anything else (Cursor, unknown hosts) — the universal prime auto-detects:
-cp studio_prime_v5.5.md <your-host's-system-prompt-slot>
+cp studio_prime.md <your-host's-system-prompt-slot>
 ```
 
 **2.** Trigger it:
@@ -100,9 +100,9 @@ flowchart TD
     P4 --> G4{"🔴"}
     G4 -->|"pass"| P5["🎨 P5 · Stylize<br/>OKLCH design system, WCAG 2.1 AA executed audit, LCP/CLS"]
     P5 --> G5{"🔴"}
-    G5 -->|"pass"| P6["🚀 P6 · Release<br/>migrations dry-run, deploy, smoke tests, rollback dry-run"]
+    G5 -->|"pass"| P6["🚀 P6 · Release<br/>migrations dry-run, deploy (creds = standing auth), smoke tests, rollback dry-run<br/>leaves product LIVE at handoff"]
     P6 --> NS{"🎯 Northstar<br/>Validation Gate"}
-    NS -->|"validated"| SHIP["✅ Deployed product + 17-section HANDOFF.md"]
+    NS -->|"validated"| SHIP["✅ Live URL (creds provided) OR<br/>still-running localhost + PID (no creds)<br/>+ 17-section HANDOFF.md"]
     G1 & G2 & G3 & G4 & G5 -.->|"BLOCKER → git stash,<br/>bounded repair loop"| REPAIR(("🧯"))
     classDef io fill:#1e293b,stroke:#64748b,color:#e2e8f0
     classDef p1 fill:#6366f1,stroke:#4338ca,color:#ffffff
@@ -202,6 +202,9 @@ failure → 3 direct fix attempts → targeted web research → 1 final retry
         → CONTINUE the pipeline with remaining scope
         → human invoked ONLY for critical-path dependencies
         → unattended mode: checkpoint-exit non-zero, never block on a human
+        → BUT handoff is never a checkpoint: deploy creds = standing
+          authorization (exit 0 with a verified live URL); no creds →
+          exit 0 with the localhost server LEFT RUNNING (URL + PID logged)
 ```
 
 ---
@@ -215,7 +218,7 @@ failure → 3 direct fix attempts → targeted web research → 1 final retry
 | 🔵 **Codex CLI** | [`codex_prime.md`](codex_prime.md) | [📖 setup](codex_setup.md) | `AGENTS.md` + `project_doc_max_bytes = 131072` | 🟢 **FULL** (`codex exec`) |
 | 🟠 **OpenClaw** | [`openclaw_prime.md`](openclaw_prime.md) | [📖 setup](openclaw_setup.md) | `AGENTS.md` | 🟡 Partial (PTY-tethered) |
 | 🔴 **Antigravity** | [`antigravity_prime.md`](antigravity_prime.md) | [📖 setup](antigravity_setup.md) | `AGENTS.md` (or `GEMINI.md`) | 🟢 **FULL** (`/goal` + `agy -p`) |
-| 🌌 **Universal** (Cursor / unknown) | [`studio_prime_v5.5.md`](studio_prime_v5.5.md) | [📖 setup](universal_setup.md) | host's system-prompt slot | 🔍 auto-detected |
+| 🌌 **Universal** (Cursor / unknown) | [`studio_prime.md`](studio_prime.md) | [📖 setup](universal_setup.md) | host's system-prompt slot | 🔍 auto-detected |
 
 **Quick chooser:** want maximum autonomy → **OpenCode** · Claude models + hooks + operator control → **Claude Code** · CI/CD-friendly headless runs → **Codex CLI** · Discord/Slack/multi-channel team triggers → **OpenClaw** · desktop agent cockpit + browser-verified UI work → **Antigravity** · don't know yet / multiple hosts / Cursor → **Universal**.
 
@@ -229,7 +232,7 @@ The universal prime doesn't guess its host — it **physically probes** the tool
 studio-prime/
 ├── README.md                 ← you are here
 │
-├── studio_prime_v5.5.md      # 🌌 UNIVERSAL prime — auto-detects all 6 platforms
+├── studio_prime.md           # 🌌 UNIVERSAL prime — auto-detects all 6 platforms
 ├── universal_setup.md        #    └─ setup + deep-reference guide
 │
 ├── opencode_prime.md         # 🟢 OpenCode-native prime
@@ -280,6 +283,7 @@ your-project/
 | ♿ Accessibility | WCAG 2.1 AA via an **executed** runtime audit (pa11y / axe-core against the running app) — audit-only or stub-only submissions are a BLOCKER |
 | 🎨 Design | OKLCH color space, full component state matrices (default/hover/focus/active/disabled), spring/physics-based motion (no generic bounce), no `#000000`, no AI-starter-pack slop |
 | 📦 Handoff | 17-section `HANDOFF.md`, authored as `## N.` headings, gate-counted and placeholder-scanned before sign-off |
+| 🟢 Liveness | At sign-off the product is LIVE — the deployed URL (creds provided) or `http://localhost:<port>` + PID (no creds) returned **HTTP 200** on a re-probe, with the `curl` stdout captured as proof-of-work; deployable-but-dark is a BLOCKER |
 
 </details>
 
@@ -290,10 +294,10 @@ your-project/
 
 The human is a **blocking API**, invoked only when genuinely needed:
 
-1. **Destructive & network gates** — `rm -rf`, `npm publish`, DB drops, force-push, `chmod 777`, piping `curl` to shells, port scanners: always human-authorized. Studio Prime **never** autonomously hard-resets.
-2. **Credential gaps** — keys/tokens the agent can't self-provision.
+1. **Destructive & network gates** — `rm -rf`, `npm publish`, DB drops, force-push, `chmod 777`, piping `curl` to shells, port scanners: always human-authorized. Studio Prime **never** autonomously hard-resets. (A deploy to the *user-supplied* target with *user-supplied* credentials is not "destructive" for this rule — it's pre-authorized; see bullet 2.)
+2. **Credential gaps** — keys/tokens the agent can't self-provision. The flip side is **credentials-as-authorization**: hosting/deploy credentials supplied at intake (`VERCEL_TOKEN`, `NETLIFY_AUTH_TOKEN`, `FLY_API_TOKEN`, a logged-in CLI, kubeconfig, SSH deploy key…) *are* the deploy authorization — their presence licenses an autonomous live deploy, in interactive **and** unattended mode. Only their **absence** is a gap, and even then the agent ships a still-running localhost server rather than stalling.
 3. **PRD conflicts** — two requirements pointing at materially different products: halt and ask, never guess.
-4. **Architecture / research / deployment overrides** — an architecture, research, or deployment gate that requires explicit human authorization to proceed.
+4. **Architecture / research overrides** — an architecture or research gate that requires explicit human authorization to proceed. (Deployment is **not** in this list: when deploy credentials were provided, going live is pre-authorized; when they were not, the agent leaves a running localhost server instead of asking.)
 5. **Critical-path repair exhaustion** — after the bounded repair loop, only critical-path module failures escalate; everything else is isolated and the pipeline continues.
 
 </details>
@@ -321,7 +325,7 @@ No. It's 100% Markdown. There is no SDK, no npm package, no runtime. You copy on
 <details>
 <summary><b>Which file do I actually use?</b></summary>
 <br/>
-One prime per project. If your host is one of the five named platforms, use its native prime (sharper tool bindings). If you're on Cursor, an unknown host, or hopping between hosts, use <code>studio_prime_v5.5.md</code> — it probes and adapts.
+One prime per project. If your host is one of the five named platforms, use its native prime (sharper tool bindings). If you're on Cursor, an unknown host, or hopping between hosts, use <code>studio_prime.md</code> — it probes and adapts.
 </details>
 
 <details>
@@ -333,7 +337,7 @@ Model-agnostic by design. The primes constrain <i>behavior</i> (gates, verificat
 <details>
 <summary><b>Will it really run unattended?</b></summary>
 <br/>
-On OpenCode, Codex CLI (<code>codex exec --sandbox workspace-write -a never</code>), and Antigravity (Agent-driven autonomy + <code>/goal</code> + headless <code>agy -p</code>) — yes, that's the Sleep Test, and the Autonomous Execution Contract in every prime exists to guarantee it. Claude Code and OpenClaw run partially attended (manual <code>/compact</code> / PTY tether). Destructive operations always stop for a human, no matter the mode.
+On OpenCode, Codex CLI (<code>codex exec --sandbox workspace-write -a never</code>), and Antigravity (Agent-driven autonomy + <code>/goal</code> + headless <code>agy -p</code>) — yes, that's the Sleep Test, and the Autonomous Execution Contract in every prime exists to guarantee it. Claude Code and OpenClaw run partially attended (manual <code>/compact</code> / PTY tether). The handoff itself is never a checkpoint: if you supplied hosting credentials, the agent deploys live and hands you a working URL; if you didn't, it leaves a localhost server running (URL + PID documented) so you wake to a working product either way. Truly destructive, irreversible operations (data drops, force-push) always stop for a human, no matter the mode — but an authorized deploy with your own credentials is not one of them.
 </details>
 
 ---
