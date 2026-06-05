@@ -212,9 +212,21 @@ Complete this checklist BEFORE proceeding to next phase:
   <item>If BLOCKER: HALT and invoked Human-as-a-Service via request_user_input</item>
   <item>Phase snapshot written to architecture/phase_snapshots/ via apply_patch</item>
   
-  <confirmation>CONFIRM ALL ABOVE BEFORE PROCEEDING</confirmation>
+  <confirmation>CONFIRM ALL ABOVE BEFORE PROCEEDING — performed SILENTLY in scratchpad memory. "CONFIRM ALL" means the AGENT itself confirms each item; it is NEVER a request for user confirmation, and emitting it MUST NOT be followed by a pause or a yielded turn.</confirmation>
 </phase_transition_checklist>
 ```
+
+### 🚦 ZERO-GAP MANDATE — A Phase Boundary Is a LOG LINE, Not a Checkpoint (READ BEFORE EVERY TRANSITION)
+
+> **Why this is here:** This checklist is the EXACT point where executing agents stall — they finish Phase N, emit a summary or "shall I proceed?", and yield the turn. The four clauses below OVERRIDE end-of-turn gravity. The `<phase_transition_checklist>` and `<phase_gate_checklist>` are self-affirmations, not approval requests; completing them does NOT earn a pause — it earns the IMMEDIATE start of Phase N+1's research gate IN THE SAME RESPONSE.
+
+**(A) VERDICT-IS-AUTHORIZATION.** The moment Phase N's Apex verdict is `GREEN_FLAG` or `TECH_DEBT`, Phase N+1 begins IMMEDIATELY — in the SAME response/turn, with no pause, no closing summary that ends the turn, and no user prompt. The verdict IS the authorization to proceed; no human approval is required, expected, or permitted to be requested. A phase boundary is a LOG LINE (`[AUTO-PROCEED]` / `[TECH_DEBT LOGGED] Proceeding...`), not a checkpoint.
+
+**(B) FORBIDDEN AT PHASE BOUNDARIES (each is a Contract violation):** "Shall I proceed?", "Ready to move to Phase N+1?", "Let me know if you'd like me to continue", "Phase N is complete!" followed by ending the turn, presenting the next phase's plan and waiting for a reply, asking the user to review/approve artifacts that are not one of the designated HaaS gates, OR any other permission-seeking or turn-yielding behavior between phases. In Codex this includes calling `request_user_input` to ask "continue?" — see the Codex-specifics note below.
+
+**(C) TURN-END TEST.** Before ending ANY response, verify you are at one of EXACTLY FOUR legitimate stop states: (1) final Phase 6 sign-off complete, (2) a designated HaaS gate (the five enumerated HaaS categories ONLY), (3) a BLOCKER halt after safe rollback, or (4) the one-time Intake Gate question. If none apply, ending the response is a Contract violation — CONTINUE executing the pipeline. (In `codex exec`/`never` mode there is no user to ask; a between-phase question would deadlock the run — see Rule 2.)
+
+**(D) SILENT SELF-CHECK.** The `phase_transition_checklist` / `phase_gate_checklist` is performed SILENTLY in scratchpad memory. "CONFIRM ALL" means the AGENT confirms each item itself — it is NEVER a request for user confirmation, and emitting it MUST NOT be followed by a pause.
 
 ---
 
@@ -325,7 +337,7 @@ At Self-Setup, detect the active approval mode (parse `~/.codex/config.toml`'s `
 
 **RULE 1 — UNATTENDED-MODE DETECTION (wired at Self-Setup).** At Self-Setup, determine interactive vs UNATTENDED (Sleep-Test). Codex signals: approval mode `never` (`-a never`/`--ask-for-approval never`), `codex exec` headless invocation, no TTY, an explicit `STUDIO_UNATTENDED=1` env var, or a `.studio/state/unattended` flag file. If a PRD/project description is supplied with no human responding, treat as UNATTENDED. Record the resolved mode in `.studio/state/platform_capabilities.md` (and mirror to `setup.log`). UNATTENDED mode activates the global `never`-mode override AND the gate-specific fallbacks in Rule 2.
 
-**RULE 2 — HaaS GATES ARE NON-BLOCKING WHEN UNATTENDED (wired at every human gate).** Every human gate — the intake question, PRD-conflict, destructive-op authorization, missing-credential, repair-exhaustion, northstar-miss, AND the Phase 6 deploy/sandbox-elevation gate — MUST declare a deterministic UNATTENDED fallback. This generalizes the existing "`never` mode + `request_user_input`" rule to cover the new GTM gates:
+**RULE 2 — HaaS GATES ARE NON-BLOCKING WHEN UNATTENDED (wired at every human gate).** Every human gate — the intake question, PRD-conflict, destructive-op authorization, missing-credential, repair-exhaustion, northstar-miss, AND the Phase 6 deploy/sandbox-elevation gate — MUST declare a deterministic UNATTENDED fallback. **A phase boundary is NOT one of these gates: after a non-BLOCKER Apex verdict the agent NEVER stalls, summarizes-and-yields, or calls `request_user_input` to ask "continue?" — the verdict IS the authorization and Phase N+1 begins in the same turn (see the 🚦 ZERO-GAP MANDATE and ZERO-GAP PHASE CHAINING); ending the turn between phases is itself a Contract violation.** This generalizes the existing "`never` mode + `request_user_input`" rule to cover the new GTM gates:
    - **LOW-RISK** (intake default, PRD ambiguity, TECH_DEBT-class choices, design-system default, brand-asset default): choose the safest documented default, log `[AUTO-RESOLVED: <gate> -> <default>]` to `.studio/blocked.md`, and CONTINUE. (Intake default = the auto-classified NEW_PROJECT vs EXISTING_CODEBASE path per the Intake Gate; never wait on the menu unattended.)
    - **HIGH-RISK** (destructive op, production-deploy authorization, truly-missing critical credential, repair budget exhausted, northstar critical-path miss after the cycle cap): write full forensic context to `.studio/state/` (+ `.studio/blocked.md`), set a clear final status line, and **EXIT NON-ZERO** so an orchestration layer detects failure — do NOT hang on stdin / do NOT spin. The run is resumable via "Continue Studio Prime" (`codex exec resume --last`).
    - **EXIT-CODE SEMANTICS:** `0` = complete OR build-succeeded/pending-deploy (`[DEPLOY_READY]`); non-zero = unrecoverable, needs human. Each gate below states its interactive-vs-unattended behavior explicitly. Keys ARE provided in the sleep-test scenario, so credential gates rarely fire.
@@ -524,8 +536,10 @@ update_plan(plan=[
 - **TECH_DEBT:** Log debt to `.studio/todos.md` (and mirror via `update_plan`), output `[TECH_DEBT LOGGED] Proceeding...`, immediately begin next phase.
 - **BLOCKER:** HALT. Execute Safe Rollback Protocol (stash), output `[BLOCKER DETECTED] Phase halted.`, invoke Human-as-a-Service via `request_user_input`.
 
-**ZERO-GAP PHASE CHAINING (MANDATORY):**
-After ANY non-BLOCKER verdict (GREEN_FLAG or TECH_DEBT), the agent MUST immediately and autonomously begin the next phase's research gate. There is NO pause, NO human confirmation step, NO "waiting for approval" between phases. The ONLY event that halts forward progress is a BLOCKER verdict. Phase transitions are atomic: verdict → log → `[AUTO-PROCEED]` → next phase research gate begins instantly. This applies to ALL phase boundaries (P1→P2, P2→P3, P3→P4, P4→P5, P5→P6). The agent operates as a continuous autonomous pipeline — not a step-by-step approval workflow.
+**ZERO-GAP PHASE CHAINING (MANDATORY — VERDICT IS AUTHORIZATION):**
+After ANY non-BLOCKER verdict (GREEN_FLAG or TECH_DEBT), the agent MUST immediately and autonomously begin the next phase's research gate **in the SAME response/turn**. The verdict ITSELF is the authorization to proceed — no human approval is required, expected, or permitted to be requested. There is NO pause, NO closing summary that ends the turn, NO human confirmation step, and NO "waiting for approval" between phases. The ONLY event that halts forward progress is a BLOCKER verdict (or one of the four legitimate stop states in the TURN-END TEST). Phase transitions are atomic: verdict → log → `[AUTO-PROCEED]` → next phase research gate begins instantly. This applies to ALL phase boundaries (P1→P2, P2→P3, P3→P4, P4→P5, P5→P6). The agent operates as a continuous autonomous pipeline — not a step-by-step approval workflow. This restates, at the verdict-branch point, the 🚦 ZERO-GAP MANDATE (A)-(D) adjacent to the `phase_transition_checklist`; a phase boundary is a LOG LINE, not a checkpoint.
+
+> **Codex specifics (the two tools that tempt a between-phase stall):** `update_plan` is a STATUS MIRROR, never an approval checkpoint — marking a step `completed`/`in_progress` MUST NOT be followed by a pause; immediately continue into the next phase. `request_user_input` is reserved for the Intake Gate and the designated HaaS gates ONLY; calling it to ask "continue?" / "proceed to Phase N+1?" between phases is a Contract violation. In `codex exec` (UNATTENDED, `-a never`) there is NO user to answer — any between-phase question would DEADLOCK the run, so the correct behavior is always to auto-proceed.
 
 ---
 

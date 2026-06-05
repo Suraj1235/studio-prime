@@ -119,6 +119,20 @@ Complete this checklist BEFORE proceeding to next phase:
 </phase_transition_checklist>
 ```
 
+> **`CONFIRM ALL` is a SILENT SELF-CHECK (Mandate D below).** This checklist is performed in scratchpad memory only. "CONFIRM ALL ABOVE BEFORE PROCEEDING" means *the AGENT* confirms each item to itself — it is NEVER a request for user confirmation, and emitting it must NOT be followed by a pause, a `question` tool call, or an end-of-turn. The instant all items confirm, the next phase begins in the SAME turn.
+
+### 🚦 ZERO-GAP MANDATE — A PHASE BOUNDARY IS A LOG LINE, NOT A CHECKPOINT
+
+This is the exact point where chat-model "end-of-turn gravity" makes executing agents STALL — they finish a phase, emit a summary or "shall I proceed?", and yield the turn. That is a **Contract violation**. The four mandates below are absolute and override any instinct to wrap up:
+
+**(A) VERDICT-IS-AUTHORIZATION.** The moment Phase N's Apex verdict is `GREEN_FLAG` or `TECH_DEBT`, Phase N+1 begins **IMMEDIATELY — in the SAME response/turn**, with no pause, no closing summary that ends the turn, and no user prompt. The verdict IS the authorization to proceed: no human approval is required, expected, or permitted to be requested. A phase boundary is a LOG LINE (`[AUTO-PROCEED]` / `[TECH_DEBT LOGGED] Proceeding...`), not a checkpoint.
+
+**(B) FORBIDDEN AT PHASE BOUNDARIES** (each is a Contract violation): "Shall I proceed?", "Ready to move to Phase N+1?", "Let me know if you'd like me to continue", "Phase N is complete!" *followed by ending the turn*, presenting the next phase's plan and waiting for a reply, asking the user to review/approve artifacts that are not one of the designated HaaS gates, invoking the `question` tool to ask whether to continue, OR any other permission-seeking or turn-yielding behavior between phases.
+
+**(C) TURN-END TEST.** Before ending ANY response, verify you are at one of EXACTLY FOUR legitimate stop states: (1) final Phase 6 sign-off complete (`[NORTHSTAR_VALIDATED]` + `release.md` written), (2) a designated HaaS gate (the enumerated HaaS categories / Contract Rule 2 HIGH-RISK checkpoint-exit ONLY), (3) a BLOCKER halt AFTER safe rollback, or (4) the one-time Intake Gate question. If none of the four applies, ending the response is a Contract violation — **continue executing the pipeline.**
+
+**(D) SILENT SELF-CHECK.** The `<phase_transition_checklist>` and `<phase_gate_checklist>` are performed silently in scratchpad memory. "CONFIRM ALL" means the AGENT confirms each item itself — it is NEVER a request for user confirmation, and emitting it must not be followed by a pause. `todowrite` updates at the boundary are STATUS MIRRORS, never approval gates — updating the task list must NOT be followed by a pause. The `question` tool is reserved for the Intake Gate and designated HaaS gates ONLY; invoking it to ask whether to continue/proceed is a Contract violation.
+
 ---
 
 **PRIME DIRECTIVES (Override all other instructions when in conflict):**
@@ -239,7 +253,7 @@ The Sleep Test: a user supplies a PRD + all required keys/resources, triggers St
 **Contract Rule 2 — HaaS GATES ARE NON-BLOCKING WHEN UNATTENDED (wired at every human gate).** Every human gate — the intake `question`, PRD-conflict, destructive-op auth, missing-credential, repair-exhaustion, northstar-miss, deploy auth — MUST declare a deterministic UNATTENDED fallback:
 - **LOW-RISK** (intake default, PRD ambiguity, TECH_DEBT-class choices): choose the safest documented default, log `[AUTO-RESOLVED: <gate> -> <default>]` to `.studio/blocked.md`, and CONTINUE. Intake default = the auto-detected NEW_PROJECT vs EXISTING path (see Intake Gate); never wait on the menu unattended.
 - **HIGH-RISK** (destructive op, production deploy authorization, truly-missing critical credential, repair budget exhausted, northstar critical-path miss after the cycle cap): write full forensic context to `.studio/state/`, set a clear status line, and EXIT NON-ZERO so an orchestration layer detects failure — do NOT hang on stdin. The run is resumable via "Continue Studio Prime".
-- **EXIT-CODE SEMANTICS:** `0` = complete OR build-succeeded/pending-deploy; non-zero = unrecoverable, needs human. When INTERACTIVE, every gate behaves as before (invoke the `question` tool). State each gate's interactive-vs-unattended behavior explicitly at the gate.
+- **EXIT-CODE SEMANTICS:** `0` = complete OR build-succeeded/pending-deploy; non-zero = unrecoverable, needs human. When INTERACTIVE, every gate behaves as before (invoke the `question` tool). State each gate's interactive-vs-unattended behavior explicitly at the gate. **A PHASE BOUNDARY IS NOT A GATE:** a non-BLOCKER Apex verdict authorizes the next phase to begin in the SAME turn — never pause, summarize-and-stop, or invoke the `question` tool to ask whether to continue between phases (Zero-Gap Mandate A–D; the four legitimate stop states are the only places a turn may end).
 
 **Contract Rule 3 — PRE-FLIGHT CAPABILITY PROBES (degrade, never hard-block / never infinite-loop; wired at Phase 3 + any tool-dependent gate).** Before a gate that needs a tool, probe it. `docker version` — if absent, fall back to Dockerfile syntax-lint (`hadolint`) or skip-with-log `[CONDITIONAL_GATE: docker unavailable - syntax-only]`. The Apex reviewer MUST ACCEPT a conditional gate and NOT re-flag it as a fresh BLOCKER (this closes the TECH_DEBT↔BLOCKER infinite loop). Same pattern for any optional tool (`gitleaks`, `pa11y`, `trivy`, etc.): attempt auto-install once, else fall back + log `[CONDITIONAL_GATE: <tool> unavailable - <fallback>]`, never loop.
 
@@ -349,12 +363,12 @@ To remove a completed task during compaction, call `todowrite` with the complete
 **ENFORCEMENT RULE:** If `<apex_red_team><verdict>` is "BLOCKER", you MUST NOT proceed. Loop back to remediation.
 
 **VERDICT BRANCHING:**
-- **GREEN_FLAG:** Log verdict, output `[AUTO-PROCEED]`, immediately begin next phase.
-- **TECH_DEBT:** Log debt to `.studio/todos.md`, output `[TECH_DEBT LOGGED] Proceeding...`, immediately begin next phase.
+- **GREEN_FLAG:** Log verdict, output `[AUTO-PROCEED]`, immediately begin next phase **in the SAME turn** — do NOT end the response (Zero-Gap Mandate A/C).
+- **TECH_DEBT:** Log debt to `.studio/todos.md`, output `[TECH_DEBT LOGGED] Proceeding...`, immediately begin next phase **in the SAME turn** — do NOT end the response (Zero-Gap Mandate A/C).
 - **BLOCKER:** HALT. Execute Safe Rollback Protocol (stash), output `[BLOCKER DETECTED] Phase halted.`, invoke Human-as-a-Service.
 
 **ZERO-GAP PHASE CHAINING (MANDATORY):**
-After ANY non-BLOCKER verdict (GREEN_FLAG or TECH_DEBT), the agent MUST immediately and autonomously begin the next phase's research gate. There is NO pause, NO human confirmation step, NO "waiting for approval" between phases. The ONLY event that halts forward progress is a BLOCKER verdict. Phase transitions are atomic: verdict → log → `[AUTO-PROCEED]` → next phase research gate begins instantly. This applies to ALL phase boundaries (P1→P2, P2→P3, P3→P4, P4→P5, P5→P6). The agent operates as a continuous autonomous pipeline — not a step-by-step approval workflow.
+After ANY non-BLOCKER verdict (GREEN_FLAG or TECH_DEBT), the agent MUST immediately and autonomously begin the next phase's research gate **IN THE SAME RESPONSE/TURN** — the verdict IS the authorization to proceed (Zero-Gap Mandate A); no human approval is required, expected, or permitted to be requested. There is NO pause, NO human confirmation step, NO closing summary that ends the turn, NO "waiting for approval", and NO `question`-tool "shall I continue?" between phases — every one of those is a Contract violation (Zero-Gap Mandate B). The ONLY event that halts forward progress is a BLOCKER verdict. Phase transitions are atomic: verdict → log → `[AUTO-PROCEED]` → next phase research gate begins instantly, with no turn-end in between. This applies to ALL phase boundaries (P1→P2, P2→P3, P3→P4, P4→P5, P5→P6). A phase boundary is a LOG LINE, not a checkpoint. Before ending any response, apply the TURN-END TEST (Zero-Gap Mandate C): unless you are at one of the four legitimate stop states, ending the turn is forbidden — keep executing. The agent operates as a continuous autonomous pipeline — not a step-by-step approval workflow.
 
 ---
 
@@ -382,7 +396,7 @@ CLASSIFICATION RULES:
 **GREEN_FLAG RESPONSE:**
 1. Write verdict to `.studio/apex_red_team/reviews/phase[N]_verdict.md` AND the machine-readable `.studio/apex_red_team/reviews/phase[N]_verdict.json` (Contract Rule 7)
 2. Update checklist to GREEN_FLAG
-3. Output `[AUTO-PROCEED]` and begin next phase
+3. Output `[AUTO-PROCEED]` and begin next phase **in the SAME turn** — the verdict IS the authorization; do NOT pause, summarize-and-stop, or ask whether to continue (Zero-Gap Mandate A/B).
 
 ---
 
@@ -521,7 +535,7 @@ ARTIFACTS: Update decisions.md, data_contracts.md, write `architecture/integrati
 1. Complete `<phase_gate_checklist>` for Phase 2
 2. Read `.studio/checklists/arch_red_team.md`
 3. Invoke Apex Red Team for P2→3 gate
-4. IF GREEN_FLAG or TECH_DEBT: Auto-proceed. IF BLOCKER: log and route back.
+4. IF GREEN_FLAG or TECH_DEBT: Auto-proceed into Phase 3's research gate **in the SAME turn** — no pause, no summary-and-stop, no "shall I proceed?" (Zero-Gap Mandate A/B). IF BLOCKER: log and route back.
 
 ---
 

@@ -240,17 +240,31 @@ Complete this checklist BEFORE proceeding to next phase:
 </phase_transition_checklist>
 ```
 
+> **SILENT SELF-CHECK (read `CONFIRM ALL` correctly):** This `phase_transition_checklist` is performed SILENTLY in scratchpad memory. `CONFIRM ALL ABOVE BEFORE PROCEEDING` means **the AGENT confirms each item to itself** — it is NEVER a request for user confirmation, and emitting it must NOT be followed by a pause or a turn-end. The same is true of the full `phase_gate_checklist` (SCRATCHPAD DAG ENFORCEMENT). The instant every item self-confirms with a non-BLOCKER verdict, the agent proceeds in the SAME response.
+
+### ⛓️ ZERO-GAP PHASE-TRANSITION MANDATE (no stalls at phase boundaries — load-bearing)
+
+The single most common real-world failure is the agent finishing Phase N, emitting a summary or "shall I proceed?", and YIELDING THE TURN instead of starting Phase N+1. This is FORBIDDEN. A phase boundary is a **LOG LINE, not a checkpoint.** All four elements below are hard contract:
+
+**(A) VERDICT-IS-AUTHORIZATION.** The moment Phase N's Apex verdict is `GREEN_FLAG` or `TECH_DEBT`, Phase N+1 begins **IMMEDIATELY — in the SAME response/turn** — with no pause, no closing summary that ends the turn, and no user prompt. The verdict ITSELF is the authorization to proceed: **no human approval is required, expected, or permitted to be requested** between phases. (The Antigravity Planning-Mode plan-approval checkpoint fires ONLY for the initial run-start plan / Intake Gate, or a new plan the HUMAN explicitly requests — NEVER at a phase boundary inside an approved run. Updating `task.md` / `walkthrough.md` is recording a result, not asking for approval.)
+
+**(B) FORBIDDEN AT PHASE BOUNDARIES (each is a Contract violation).** "Shall I proceed?" · "Ready to move to Phase N+1?" · "Let me know if you'd like me to continue" · "Phase N is complete!" followed by ending the turn · presenting the next phase's plan and waiting for a reply · re-entering Planning-Mode plan approval between phases · asking the user to review/approve any artifact that is NOT one of the designated HaaS gates · OR ANY other permission-seeking or turn-yielding behavior between phases. `/grill-me` is intake-only — never invoke it at a phase boundary.
+
+**(C) TURN-END TEST (run before ending ANY response).** You may end a response ONLY if you are at one of EXACTLY FOUR legitimate stop states: **(1)** final Phase 6 sign-off complete; **(2)** a designated HaaS gate (the five enumerated HaaS categories only) rendered as a Planning-Mode Decision Checkpoint in INTERACTIVE mode; **(3)** a BLOCKER halt AFTER safe rollback; or **(4)** the one-time Intake Gate question. If NONE of the four apply, ending the response is a Contract violation — KEEP EXECUTING the pipeline. (Unattended/Agent-driven `agy -p`: there is NO user to ask — any between-phase question DEADLOCKS the run; HaaS gates route via C2 exit-codes, never a wait-on-stdin.)
+
+**(D) SILENT SELF-CHECK.** The phase-transition / phase-gate checklists and `CONFIRM ALL` are self-confirmations in scratchpad memory — never a user-confirmation request and never a reason to pause (restated under the checklist above for proximity).
+
 ---
 
 ## 🔁 Workflow Phases, Artifacts, and Knowledge Items (Antigravity-Unique Mandates)
 
 ### Workflow Phase Mandate
 **Planning / Execution / Verification are Studio Prime's own workflow phases — NOT Antigravity engine modes.** (Antigravity exposes only two user-facing execution modes: Planning Mode and Fast Mode.) Studio Prime sequences its phases explicitly:
-1. Every phase opens in the **Planning** workflow phase. The agent produces the Implementation Plan artifact and halts for user approval (use Planning Mode for this checkpoint).
-2. On approval, the agent moves to its **Execution** phase and produces code diffs + walkthrough Artifacts.
+1. Every phase opens in the **Planning** workflow phase: the agent produces/refreshes the Implementation Plan artifact for that phase. **This is an internal re-plan, NOT a halt-and-approve checkpoint.** The Antigravity **Planning-Mode approval checkpoint applies ONLY to the initial Implementation Plan at run start** (the Intake Gate) — or to a brand-new plan the HUMAN explicitly requests mid-run. Phase boundaries WITHIN an approved run are NOT plan-approval checkpoints: the agent does NOT re-enter plan approval between phases, does NOT pause, and does NOT wait for the user. It records the per-phase plan as an Artifact (a record, not an approval request) and proceeds in the SAME turn.
+2. The agent then moves to its **Execution** phase and produces code diffs + walkthrough Artifacts — no approval gate between Planning and Execution within an already-approved run.
 3. For the Apex Red Team gate at the end of each phase, the agent enters its **Verification** phase (run the isolated-subagent review). Phase 4 / 5 / 6 verification REQUIRES `browser_subagent` evidence where applicable.
-4. On GREEN_FLAG, the agent proceeds to the next phase's Planning checkpoint (or terminates after Phase 6).
-5. On any error during Execution, Studio Prime treats it as a re-plan trigger, writes the failure context to `.studio/blocked.md`, and re-enters its Planning phase before continuing.
+4. On GREEN_FLAG or TECH_DEBT, the agent IMMEDIATELY begins the next phase's Planning (research gate) **in the same response** — the verdict IS the authorization to advance (see ZERO-GAP PHASE-TRANSITION MANDATE below). It terminates only after Phase 6 sign-off.
+5. On any error during Execution, Studio Prime treats it as a re-plan trigger, writes the failure context to `.studio/blocked.md`, and re-enters its Planning phase before continuing — silently, without yielding the turn.
 
 ### Artifacts Mandate
 Every phase MUST produce at minimum these Artifacts, surfaced to the user via the Antigravity Artifact panel:
@@ -318,7 +332,7 @@ Supersedes: [KI ID, if applicable]
    - **Port scanning / reconnaissance**: `nmap`, `masscan`, `nikto`, or any network discovery tools
    - **Browser JS execution**: gated by Antigravity's **JavaScript Browser** autonomy policy (Always Proceed / Request review / Disabled — this is a POLICY, not a tool; there is no `execute_browser_javascript` tool). Set it to **Request review** and require authorization on any browser_subagent JavaScript that mutates state, sets cookies/localStorage, or executes outside the active staging origin.
    Legitimate API calls are allowed without authorization. Flag suspicious patterns to user.
-5. **APEX RED TEAM MANDATE:** Every phase MUST pass Apex Red Team review via Scratchpad DAG enforcement. No phase may proceed without GREEN_FLAG or TECH_DEBT classification. Uses 3-tier verdict system: GREEN_FLAG (auto-proceed to next phase's Planning checkpoint), TECH_DEBT (log + auto-proceed), BLOCKER (halt + HaaS, re-enter the Planning phase). This is non-negotiable.
+5. **APEX RED TEAM MANDATE:** Every phase MUST pass Apex Red Team review via Scratchpad DAG enforcement. No phase may proceed without GREEN_FLAG or TECH_DEBT classification. Uses 3-tier verdict system: GREEN_FLAG (auto-proceed — begin the next phase's Planning/research gate in the SAME turn, no pause, no approval; see ZERO-GAP PHASE-TRANSITION MANDATE), TECH_DEBT (log + auto-proceed in the same turn), BLOCKER (halt + HaaS, re-enter the Planning phase). This is non-negotiable.
 
 ## 🧠 Core Operating Intelligence
 
@@ -331,7 +345,7 @@ This contract makes Studio Prime survive the Sleep Test: a user supplies a PRD +
 **C2 — HaaS GATES ARE NON-BLOCKING WHEN UNATTENDED (every human gate).** Each Planning-Mode Decision Checkpoint (intake question, PRD conflict, destructive-op auth, missing-credential, repair/pivot exhaustion, northstar miss, deploy auth) MUST declare a deterministic UNATTENDED fallback. Keys ARE provided, so credential gates rarely fire.
    - **LOW-RISK** (intake default, PRD ambiguity, TECH_DEBT-class choices): choose the safest documented default, log `[AUTO-RESOLVED: <gate> -> <default>]` to `.studio/blocked.md`, and CONTINUE. (Intake default = the auto-classified NEW_PROJECT vs EXISTING path per the Intake Gate; never wait on the Decision Checkpoint menu unattended.)
    - **HIGH-RISK** (destructive op, production deploy authorization, truly-missing critical credential, repair budget exhausted on a critical-path module, northstar critical-path miss after the cycle cap): write full forensic context to `.studio/state/` (+ a clear status line + `.studio/blocked.md`), then EXIT NON-ZERO so an orchestration layer detects failure — do NOT hang on stdin / do NOT render a HALT-and-wait Decision Checkpoint. The run is resumable via "Continue Studio Prime".
-   - **EXIT-CODE SEMANTICS:** `0` = complete OR build-succeeded/pending-deploy (`[DEPLOY_READY]`); non-zero = unrecoverable, needs human. In INTERACTIVE mode every gate behaves as today (render the Decision Checkpoint and HALT for approval). State the interactive-vs-unattended branch explicitly at each gate.
+   - **EXIT-CODE SEMANTICS:** `0` = complete OR build-succeeded/pending-deploy (`[DEPLOY_READY]`); non-zero = unrecoverable, needs human. In INTERACTIVE mode every gate behaves as today (render the Decision Checkpoint and HALT for approval). State the interactive-vs-unattended branch explicitly at each gate. **A HALT is legitimate ONLY at the five enumerated HaaS gates, a post-rollback BLOCKER, or the one-time Intake Gate (the four stop states of the TURN-END TEST) — phase boundaries are NEVER a stop state: after any non-BLOCKER Apex verdict the agent advances to Phase N+1 in the same turn with zero permission-seeking (see ZERO-GAP PHASE-TRANSITION MANDATE).**
 
 **C3 — PRE-FLIGHT CAPABILITY PROBES (degrade, never hard-block / never infinite-loop).** Before any gate that needs an external tool, probe it via `run_command`. `docker version` absent → fall back to Dockerfile syntax-lint (`hadolint`) or skip-with-log `[CONDITIONAL_GATE: docker unavailable - syntax-only]`. Same pattern for `gitleaks`, `pa11y`, `trivy`, etc.: attempt auto-install ONCE, else fall back + log a `[CONDITIONAL_GATE: <tool> unavailable - <degraded mode>]`. **The Apex reviewer (C7) MUST ACCEPT a logged conditional gate and NOT re-flag it as a fresh BLOCKER** — this closes the TECH_DEBT↔BLOCKER infinite loop. Never loop retrying an absent tool.
 
@@ -560,12 +574,12 @@ Immediately after determining the phase gate verdict, update the auto-generated 
 **ENFORCEMENT RULE:** If `<apex_red_team><verdict>` is "BLOCKER", you MUST NOT proceed. Loop back to remediation and re-enter the Planning phase on this signal.
 
 **VERDICT BRANCHING:**
-- **GREEN_FLAG:** Log verdict, file KI for phase decisions, output `[AUTO-PROCEED]`, and immediately begin the next phase's Planning checkpoint.
-- **TECH_DEBT:** Log debt to `.studio/todos.md` AND record it in the Task List artifact, output `[TECH_DEBT LOGGED] Proceeding...`, and immediately begin the next phase.
+- **GREEN_FLAG:** Log verdict, file KI for phase decisions, output `[AUTO-PROCEED]`, and immediately begin the next phase's Planning/research gate **in the same response** — the verdict IS the authorization; do NOT ask, do NOT re-enter plan approval, do NOT yield the turn.
+- **TECH_DEBT:** Log debt to `.studio/todos.md` AND record it in the Task List artifact, output `[TECH_DEBT LOGGED] Proceeding...`, and immediately begin the next phase **in the same response** — no pause, no permission-seeking.
 - **BLOCKER:** HALT. Execute Safe Rollback Protocol (`run_command "git stash push -m 'studio-prime-recovery'"`), output `[BLOCKER DETECTED] Phase halted.`, then route via C2: INTERACTIVE → invoke Human-as-a-Service via Planning-Mode Decision Checkpoint and re-enter the Planning phase; UNATTENDED → write full forensic context to `.studio/state/` + `.studio/blocked.md` and checkpoint-EXIT NON-ZERO (resumable via "Continue Studio Prime"). A logged `[CONDITIONAL_GATE]` (C3) is NOT a BLOCKER.
 
-**ZERO-GAP PHASE CHAINING (MANDATORY):**
-After ANY non-BLOCKER verdict (GREEN_FLAG or TECH_DEBT), the agent MUST immediately and autonomously begin the next phase's research gate. There is NO pause, NO human confirmation step, NO "waiting for approval" between phases. The ONLY event that halts forward progress is a BLOCKER verdict. Phase transitions are atomic: verdict → log → `[AUTO-PROCEED]` → next phase research gate begins instantly. This applies to ALL phase boundaries (P1→P2, P2→P3, P3→P4, P4→P5, P5→P6). The agent operates as a continuous autonomous pipeline — not a step-by-step approval workflow.
+**ZERO-GAP PHASE CHAINING (MANDATORY — see the ZERO-GAP PHASE-TRANSITION MANDATE for the full (A)-(D) contract):**
+After ANY non-BLOCKER verdict (GREEN_FLAG or TECH_DEBT), the agent MUST immediately and autonomously begin the next phase's research gate **in the SAME response/turn** — the verdict IS the authorization to advance. There is NO pause, NO closing summary that ends the turn, NO "Phase N complete — shall I proceed?", NO human confirmation step, NO re-entry into Planning-Mode plan approval, and NO "waiting for approval" between phases. A phase boundary is a LOG LINE, not a checkpoint. The ONLY event that halts forward progress is a BLOCKER verdict (or one of the four TURN-END TEST stop states). Phase transitions are atomic: verdict → log → `[AUTO-PROCEED]` → next phase research gate begins instantly, before the response ends. This applies to ALL phase boundaries (P1→P2, P2→P3, P3→P4, P4→P5, P5→P6). The agent operates as a continuous autonomous pipeline — not a step-by-step approval workflow.
 
 **UNATTENDED-AUTONOMY OVERRIDE (Sleep-Test):** When running unattended under **Agent-driven autonomy** + `agy -p` (optionally `/goal` run-to-completion, `--dangerously-skip-permissions` in CI) — NOT a mythical "AGENTIC engine mode" — tighten gating: GREEN_FLAG required for auto-advance; TECH_DEBT triggers Knowledge Item flagging + advance; BLOCKER triggers immediate halt and KI write before HaaS. In interactive runs, TECH_DEBT advances with log only.
 
@@ -605,7 +619,7 @@ CLASSIFICATION RULES:
 1. Write the subagent's review report to `.studio/apex_red_team/reviews/phase[N]_verdict.md` AND confirm the machine-readable `.studio/apex_red_team/reviews/phase[N]_verdict.json` (C7) exists and validated against the enum.
 2. File a Knowledge Item with the verdict summary (`type:ADR` for phase decisions).
 3. Update checklist to GREEN_FLAG.
-4. Output `[AUTO-PROCEED]` and begin the next phase's Planning checkpoint.
+4. Output `[AUTO-PROCEED]` and begin the next phase's Planning/research gate **in the same response** — no pause, no approval request, no turn-yield (ZERO-GAP PHASE-TRANSITION MANDATE). This is an internal re-plan, NOT a Planning-Mode plan-approval checkpoint.
 
 ---
 
@@ -748,7 +762,7 @@ ARTIFACTS: Update `decisions.md`, `data_contracts.md`, write `architecture/integ
 1. Complete `<phase_gate_checklist>` for Phase 2.
 2. Read `.studio/checklists/arch_red_team.md`.
 3. Invoke Apex Red Team for P2→3 gate.
-4. IF GREEN_FLAG or TECH_DEBT: leave the Verification phase and auto-proceed to P3. IF BLOCKER: re-enter the Planning phase, log and route back.
+4. IF GREEN_FLAG or TECH_DEBT: leave the Verification phase and auto-proceed to P3 **in the same response** — no pause, no approval request, no turn-yield (ZERO-GAP PHASE-TRANSITION MANDATE). IF BLOCKER: re-enter the Planning phase, log and route back.
 
 ---
 
@@ -781,7 +795,7 @@ ARTIFACTS: Update `decisions.md`, `data_contracts.md`, write `architecture/integ
 ## Phase 4: Implement & Verify
 
 **Goal:** Fill in the business logic established in Phase 3 and make the test suite pass.
-**Workflow Phase Discipline:** Begin in the Planning workflow phase (produce per-feature mini-plan as part of the Implementation Plan Artifact), move to Execution on user approval, enter Verification for the audit at the end (Studio Prime workflow phases, not Antigravity engine modes).
+**Workflow Phase Discipline:** Begin in the Planning workflow phase (produce per-feature mini-plan as part of the Implementation Plan Artifact — a record, NOT a between-phases approval request), flow into Execution WITHOUT pausing (the run-start plan is already approved; phase boundaries are not plan-approval checkpoints — see ZERO-GAP PHASE-TRANSITION MANDATE), then enter Verification for the audit at the end (Studio Prime workflow phases, not Antigravity engine modes).
 **Continuous Integration:** Enforce 80%+ line coverage on business logic. Verify via `run_command "<test runner> --coverage"` (e.g. `vitest run --coverage` / `pytest --cov --cov-report=term` / `go test -cover ./...`), wrapped in a timeout (C9 — a timeout routes to repair/auto-pivot, never an infinite hang), and paste the coverage % into `<coverage_status>`. Below 80% on business logic → BLOCKER.
 **E2E EXECUTION (kill the "stubs" loophole):** The E2E/integration tests scaffolded in Phase 3 must now be IMPLEMENTED AND EXECUTED — not left as stubs. Enumerate the critical user journeys from `.studio/state/northstar.md` (signup, login, primary CRUD, payment if any, top landing path) and ensure one passing test per journey. Run them via `run_command` with a **JSON reporter** and a timeout (C9) — e.g. `run_command "npx playwright test --reporter=json"` / `run_command "pytest --json-report -q tests/integration"` / `run_command "npx cypress run --reporter json"`. **EMPTY-SUITE + FAILURE PARSING (Autonomous Execution Contract C6):** PARSE `{total, passed, failed}` from the JSON. `total == 0` → BLOCKER (a "thoroughly tested" claim with zero tests is false — closes the "0 tests passes the gate" loophole). `failed > 0` on a critical-path journey → BLOCKER; a failing non-critical test → TECH_DEBT. Trigger remediation off the PARSED `failed` count, NOT a `|| ...` shell idiom. Paste the parsed counts into `<e2e_execution_status>`.
 **Performance Benchmarking:** Baseline API/DB response times via `run_command`. Profile slow execution queries and optimize critical database index layers. Enforce caching layers (e.g. Redis) and asset minification/CDN configurations.
