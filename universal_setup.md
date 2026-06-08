@@ -8,6 +8,12 @@
 
 > **The Sleep Test:** hand the agent a PRD + your API keys, walk away, and wake up to a **LIVE** product — a working deployed URL when hosting credentials were provided, or a fully functional product with its localhost server still running (URL + PID documented) when they were not. Every prime enforces an *Autonomous Execution Contract* so it never stalls, loops, or silently gives up unattended — and a production-grade *proof-of-work* gate (migrations, Docker/CI-CD, OWASP + secrets scanning, executed E2E/smoke tests, structured logging, health probes, graceful shutdown, WCAG 2.1 AA, a 17-section `HANDOFF.md`) so what comes back is real, not hallucinated.
 
+> **💰 Before you walk away — set a provider-side spend cap.** A non-trivial PRD is *many millions of tokens* across 6 phases × research fan-out × a parallel swarm × an adversarial gate at every phase, plus up to two northstar re-walks. Studio Prime can observe wall-clock and tool-call counts (optional `STUDIO_MAX_WALLCLOCK_HRS` / `STUDIO_MAX_TOOL_CALLS` guards that checkpoint-exit on breach) but it **cannot** see your dollar/token balance — set a hard usage/spend limit in your provider console (Anthropic / OpenAI / Google all support this) *before* an unattended run.
+
+> **🔌 The no-creds "still-running localhost" promise is host-dependent and PROVEN, not assumed.** A detached localhost server only counts as live if it survives the agent session ending on *your* host. Studio Prime runs a **detach-survival probe** before claiming `[LOCAL_LIVE]` and prefers daemon-owned supervision (`docker compose up -d`, `pm2`, a Scheduled Task on Windows) over bare `nohup`/`Start-Process`. If your host tears down the process tree at session end and no supervisor is available, you get an honest `[DEPLOY_READY]` (a one-command go-live script) instead of a false "it's live" — see the per-host localhost-survival notes in the Platform Support Matrix below.
+
+> **🌐 Scope: Studio Prime targets web products.** The terminal liveness condition is an HTTP-200 URL by construction, so mobile/desktop/CLI/library/data-pipeline targets are not first-class — for a non-web PRD the agent records a substituted terminal condition or checkpoint-exits with `[UNSUPPORTED_TARGET: non-web]` rather than forcing a web shape.
+
 ### ⚡ 2-Minute Quickstart
 
 1. **Pick your host** and copy its prime into the host's system-prompt/instructions location:
@@ -62,7 +68,7 @@ Studio Prime enforces rigorous software-engineering standards on every host, tra
 
 *   **The 2026 Impeccable Design Standard:** Studio Prime categorically rejects the homogenized "AI Starter Pack" aesthetic. It enforces a strict mathematical approach to UI engineering, dictating the use of the `OKLCH` color space for perceptual uniformity and accessibility. It mandates physics-based, 120fps GPU-accelerated motion (utilizing libraries such as `motion/react` for fluid, spring-based interactions), while explicitly prohibiting ubiquitous anti-patterns like absolute blacks (`#000000`), nested card hierarchies, and unstructured glassmorphism. Every interactive component must explicitly style the full state matrix: default, hover, focus (with visible ring), active/pressed, and disabled.
 
-*   **Platform-Native TUI Synchronization:** When running on platforms with native task tools — OpenCode's `todowrite`, Claude Code's `TaskCreate`/`TaskUpdate`, Codex CLI's `update_plan`, Antigravity's auto-generated Task List artifact (`task.md`) — the agent dynamically mirrors its internal Directed Acyclic Graph (DAG) state to the external UI task panel. This bidirectional synchronization ensures the human operator maintains perfect, real-time observability of the agent's phase progression without needing to parse the raw context stream. On platforms with no native task tool (OpenClaw, Cursor), the agent maintains a `.studio/todos.md` Markdown checklist on disk, which the human can monitor via their file watcher of choice. Critically, **`.studio/todos.md` is the cross-platform-portable canonical state log on every host regardless of which native task tool is also being driven** — this guarantees that a session started on one platform can be resumed on another with zero loss of state.
+*   **Platform-Native TUI Synchronization:** When running on platforms with native task tools — OpenCode's `todowrite`, Claude Code's `TaskCreate`/`TaskUpdate`, Codex CLI's `update_plan`, Antigravity's auto-generated Task List artifact (`task.md`) — the agent dynamically mirrors its internal Directed Acyclic Graph (DAG) state to the external UI task panel. This bidirectional synchronization ensures the human operator maintains perfect, real-time observability of the agent's phase progression without needing to parse the raw context stream. On platforms with no native task tool (OpenClaw, Cursor), the agent maintains a `.studio/todos.md` Markdown checklist on disk, which the human can monitor via their file watcher of choice. Critically, **`.studio/todos.md` is the cross-platform-portable canonical state log on every host regardless of which native task tool is also being driven** — so the `.studio/` markdown tree resumes on any host with **minimal, re-derivable loss**. Native task stores (Claude Code `TaskList`, Codex `update_plan`) and Antigravity Knowledge Items are **host-local and do NOT migrate**; on a cross-host resume they are reconstructed from `.studio/` (the agent rebuilds the native task store from `.studio/todos.md`, and re-seeds Antigravity Knowledge Items from `.studio/decisions.md`). The cross-platform guarantee covers the `.studio/` subset, not the full host-native memory layer.
 
 *   **Autonomous Escalation & State-Preserving Rollback:** Brittle debugging loops are a primary failure vector for autonomous agents. To resolve this, Studio Prime implements a bounded, 5-cycle recovery protocol. When confronted with an error, the agent is granted three direct remediation attempts. Upon failure, it is mathematically forced to pivot: executing targeted web research to inject external context for the specific error, followed by one final retry. After exhausting the repair budget (5 cycles per failure, 20 iterations max), the agent executes a safe git stash, logs forensic data to `.studio/blocked.md`, then auto-isolates the failing module — logging it as a `[PRIORITY:H]` TECH_DEBT entry — and continues the pipeline with the remaining scope. Human-as-a-Service (HaaS) is invoked only when the isolated module is a critical-path dependency; in unattended (Sleep Test) mode the agent checkpoint-exits non-zero instead of blocking on a human. This exit path does NOT apply to deployment when hosting credentials were provided — their provision IS standing authorization, so the agent deploys live and exits `0` with a working URL; if no creds were provided it still hands over with the localhost server running. A non-zero checkpoint-exit is reserved for genuinely unresolved blockers, never for a deploy step it is already authorized to perform. *Studio Prime will NEVER autonomously execute a hard reset.*
 *   **Zero-Gap Phase Chaining:** Upon receiving a passing verdict from the Apex Red Team, the agent autonomously transitions to the next phase without pausing for human approval. The agent operates as a continuous pipeline, only halting for explicit blockers or the final Northstar Validation Gate.
@@ -124,6 +130,8 @@ This is the heart of the universal edition. At session start — before Phase 1 
 | **Cursor** | ❌ Manual | ❌ Script required | ❌ Manual | ❌ Manual | ⚠️ Markdown letter list (universal fallback) | ❌ NO |
 
 The "Sleep Test" column measures whether you can start a session, walk away, and return to a complete, audited application. **Three hosts pass the Sleep Test fully:** OpenCode (true sub-agent isolation + automatic context compaction + native HaaS UI), Codex CLI (`codex exec --sandbox workspace-write -a never` for fully unattended runs with TOML-defined custom agents), and Antigravity (Agent-driven autonomy + `/goal` run-to-completion + headless `agy -p` with `--dangerously-skip-permissions` for CI + durable Artifacts that survive session crashes). Claude Code and OpenClaw run Partial Sleep Tests because they require either manual `/compact` checkpoints or PTY-tethered execution; Cursor cannot run the Sleep Test at all and falls back to a semi-autonomous, human-in-the-loop pattern.
+
+**Localhost-survival note (per host — the no-creds `[LOCAL_LIVE]` path):** a detached localhost server only counts as `[LOCAL_LIVE]` if it survives the agent session/process teardown on THIS host — which is NOT guaranteed and is PROVEN by a detach-survival probe (spawn a sleeper via the same backgrounding idiom, exit the parent shell, confirm from a fresh shell that it still answers), never assumed. **OpenCode / Claude Code:** bare `nohup`/`setsid` children may live in a session/cgroup the harness tears down — prefer `docker compose up -d` (daemon-owned) or a `pm2`/`tmux`/`screen` supervisor. **OpenClaw:** PTY-tethered; a bare background process commonly dies with the PTY session, so daemon-owned supervision is required. **Codex CLI:** sandbox/session-scoped `shell`; same caveat. **Antigravity:** the `run_command` background handle is engine-managed; verify survival from a fresh invocation. **Windows/PowerShell hosts:** `Start-Process` children are killed when the parent job object closes — use a Scheduled Task / detached `cmd /c start` wrapper / `nssm`/`pm2`, or `docker compose up -d`. If the probe FAILS on your host, you get an honest `[DEPLOY_READY: localhost cannot outlive this session — start via deploy_ready.sh]` instead of a false LIVE claim.
 
 ### How Detection Actually Runs
 
@@ -204,10 +212,15 @@ cp codex_prime.md AGENTS.md
 #   project_doc_max_bytes = 131072
 
 # Sleep-Test (unattended) mode
+#   FIRST run `codex login status` (or `codex login --help`) ONCE to confirm which env
+#   var your installed Codex honors, and which key is present — do NOT start an overnight
+#   run on a guessed env-var name. Studio Prime detects and records this at Self-Setup; if
+#   NEITHER CODEX_API_KEY nor OPENAI_API_KEY is set, it HALTS at setup with a clear message
+#   ("no Codex auth key found — set CODEX_API_KEY and restart") rather than launching a run
+#   that cannot authenticate.
 CODEX_API_KEY=sk-... codex exec --sandbox workspace-write -a never "Start Studio Prime"
-# If you encounter auth errors with CODEX_API_KEY, try OPENAI_API_KEY=sk-... instead —
-# Codex CLI may use either depending on version. Check `codex login --help` for the
-# current auth model.
+# Some Codex CLI versions honor OPENAI_API_KEY=sk-... as a fallback instead — the detected,
+# recorded env var from setup is authoritative.
 
 # Interactive
 codex
@@ -368,13 +381,14 @@ To resume an interrupted session, relaunch your host's agent and use one of thes
 *   `"resume"`
 *   `"pick up where we left off"`
 
-The agent then executes the **5-step Resume Protocol**:
+The agent then executes the **Resume Protocol**:
 
 1.  **Check for `.studio/` directory.** If missing, warn the user and offer to start fresh.
-2.  **Read `todos.md` + `decisions.md`** to re-orient. Also reads `state/*` and runs `git status`.
-3.  **Session Coherence Check.** Reads `architecture/decisions.md` completely and checks for drift across four axes: tech stack conflicts, data model conflicts, auth conflicts, and PRD alignment. If drift is detected, the agent presents the specifics and waits for resolution rather than silently overwriting.
-4.  **Check for pending Apex Red Team verdicts.** If a phase ended without a recorded verdict, the Red Team is invoked retroactively before any new work begins.
-5.  **Resume from last position.** The agent picks up at the exact phase and task marked in `todos.md`.
+2.  **Re-read `platform_capabilities.md`** (re-probe if `probed_at` is missing or >24h old). `execution_mode` is **sticky-downward**: once recorded as `unattended`, a re-probe MUST NOT silently flip it back to interactive unless a positive interactive signal is present (an explicit human message in the resume trigger, or `STUDIO_INTERACTIVE=1`) — this prevents a re-probe from reintroducing a blocking stdin wait on a headless resume.
+3.  **Read `context_checkpoint.md` FIRST if present**, and resume from its `next_concrete_action` as the authoritative restart pointer (discard it as stale if its `current_phase` is earlier than the latest committed state). Then read `todos.md` + `decisions.md`, `state/*`, and run `git status` to re-orient.
+4.  **Session Coherence Check.** Reads `architecture/decisions.md` **completely** — this is the ONE protocol-named full read that is an explicit exception to Retrieval Discipline ("targeted grep-then-read for recall; full reads only where a protocol step names one"), kept safe by the standing read-size cap. It checks for drift across four axes: tech stack conflicts, data model conflicts, auth conflicts, and PRD alignment. If drift is detected, the agent presents the specifics and waits for resolution rather than silently overwriting.
+5.  **Check for pending Apex Red Team verdicts.** If a phase ended without a recorded verdict, the Red Team is invoked retroactively before any new work begins.
+6.  **Resume from last position**, consulting the side-effect ledger so a re-walk/resume never re-applies an already-completed non-idempotent action (deploy, migration, publish) without an idempotency check.
 
 ---
 

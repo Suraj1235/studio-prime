@@ -33,6 +33,12 @@ Every prime in this repo is engineered to pass one brutal benchmark:
 
 No stalls. No infinite loops. No silent give-ups. No *"I have completed the implementation"* with predicted-but-never-executed test output. Every claim of success is backed by **proof-of-work**: real terminal output, executed E2E tests, and a live end-state — a deployed URL that survived smoke tests (creds provided), or a still-running localhost server that passed the full smoke suite (no creds). A deployable-but-dark artifact is *not* a passing Sleep Test.
 
+> **💰 Before you walk away — set a provider-side spend cap.** A non-trivial PRD is *many millions of tokens* across 6 phases × research fan-out × a parallel swarm × an adversarial gate at every phase, plus up to two northstar re-walks. Studio Prime can observe wall-clock and tool-call counts (optional `STUDIO_MAX_WALLCLOCK_HRS` / `STUDIO_MAX_TOOL_CALLS` guards that checkpoint-exit on breach) but it **cannot** see your dollar/token balance — so set a hard usage/spend limit in your provider console (Anthropic / OpenAI / Google all support this) *before* an unattended run. Don't wake up to a surprise bill.
+
+> **🔌 The no-creds "still-running localhost" promise is host-dependent and PROVEN, not assumed.** A detached localhost server only counts as live if it survives the agent session ending on *your* host. Studio Prime runs a **detach-survival probe** before claiming `[LOCAL_LIVE]` and prefers daemon-owned supervision (`docker compose up -d`, `pm2`, a Scheduled Task on Windows) over bare `nohup`/`Start-Process`. If your host tears down the process tree at session end and no supervisor is available, you'll get an honest `[DEPLOY_READY]` (a one-command go-live script) instead of a false "it's live" — see the per-host localhost-survival notes in each prime's Sleep-Test legend.
+
+> **🌐 Scope: Studio Prime targets web products.** The terminal liveness condition is an HTTP-200 URL by construction, so mobile/desktop/CLI/library/data-pipeline targets are not first-class — for a non-web PRD the agent records a substituted terminal condition or checkpoint-exits with `[UNSUPPORTED_TARGET: non-web]` rather than forcing a web shape.
+
 ---
 
 ## 🧠 What is this?
@@ -46,8 +52,10 @@ It is pure prompt engineering — **zero dependencies, zero installs, 100% Markd
 | "Tests pass" | 🎲 predicted text | 🧾 pasted raw `stdout`, divergence-analyzed |
 | Review | 🪞 self-review in same context | 🕶️ blinded 3-round adversarial sub-agent debate |
 | Failure | 🔁 infinite retry or give-up | 🧯 5-cycle bounded repair → auto-isolate → continue |
-| Memory | 🧠 context window (amnesia) | 💾 `.studio/` state tree, survives crashes & platform hops |
-| Done = | "looks done" | 😴 live at handoff (deployed URL *or* still-running localhost + PID) + 17-section `HANDOFF.md` |
+| Memory | 🧠 context window (amnesia) | 💾 `.studio/` state tree + proactive context-engineering (budget tiers, "read big/return small" offloading), survives crashes & platform hops |
+| Build speed | 🐌 one file at a time | 🐝 ownership-partitioned **parallel build swarm** (P3/P4) — gates stay sequential |
+| Design | 🎨 generic AI-starter-pack | 🎨 archetype-matched design-skill, color-converted into the built-in OKLCH system (registry skills ship hex/no-OKLCH, so they're transformed, not adopted); bans still win |
+| Done = | "looks done" | 😴 live at handoff (deployed URL *or* still-running localhost + PID) + 17-section `HANDOFF.md` + a platform-aware **deployment briefing** |
 
 ---
 
@@ -98,11 +106,11 @@ flowchart TD
     P3 --> G3{"🔴"}
     G3 -->|"pass"| P4["⚙️ P4 · Implement & Verify<br/>80%+ coverage, EXECUTED E2E, OWASP, CVE + secrets scan"]
     P4 --> G4{"🔴"}
-    G4 -->|"pass"| P5["🎨 P5 · Stylize<br/>OKLCH design system, WCAG 2.1 AA executed audit, LCP/CLS"]
+    G4 -->|"pass"| P5["🎨 P5 · Stylize<br/>archetype design-skill → OKLCH system, WCAG 2.1 AA executed audit, LCP/CLS"]
     P5 --> G5{"🔴"}
     G5 -->|"pass"| P6["🚀 P6 · Release<br/>migrations dry-run, deploy (creds = standing auth), smoke tests, rollback dry-run<br/>leaves product LIVE at handoff"]
     P6 --> NS{"🎯 Northstar<br/>Validation Gate"}
-    NS -->|"validated"| SHIP["✅ Live URL (creds provided) OR<br/>still-running localhost + PID (no creds)<br/>+ 17-section HANDOFF.md"]
+    NS -->|"validated"| SHIP["✅ Live URL (creds provided) OR<br/>still-running localhost + PID (no creds)<br/>+ 17-section HANDOFF.md + deployment briefing"]
     G1 & G2 & G3 & G4 & G5 -.->|"BLOCKER → git stash,<br/>bounded repair loop"| REPAIR(("🧯"))
     classDef io fill:#1e293b,stroke:#64748b,color:#e2e8f0
     classDef p1 fill:#6366f1,stroke:#4338ca,color:#ffffff
@@ -250,14 +258,14 @@ studio-prime/
 └── LICENSE                   # MIT
 ```
 
-And the state tree every prime grows inside **your** project (the cure for LLM amnesia — a session started on one platform can resume on another):
+And the state tree every prime grows inside **your** project (the cure for LLM amnesia — the `.studio/` markdown tree resumes on any host; native task stores and Antigravity Knowledge Items are host-local and are reconstructed from `.studio/` on a cross-host resume):
 
 ```text
 your-project/
 ├── .studio/                  # 💾 canonical agent memory (cross-platform portable)
 │   ├── todos.md              #    task DAG, mirrored to the host TUI where supported
 │   ├── blocked.md            #    forensic logs of failed escalations
-│   ├── state/                #    northstar.md (immutable), per-phase research, capability map
+│   ├── state/                #    northstar.md (immutable), per-phase research, capability map, swarm_plan.md, context_checkpoint.md, deployment_briefing.md
 │   ├── apex_red_team/        #    blinded review verdicts (.md + .json)
 │   └── checklists/           #    DAG gate checkpoints
 ├── architecture/             # 🏛️ decisions.md, data_contracts.md, phase_snapshots/
@@ -281,7 +289,7 @@ your-project/
 | 🐳 Ops | Multi-stage Docker, CI/CD pipeline, reproducible DB migrations (dry-run gated), JSON stdout logging (parser-validated), health probes |
 | 📉 Resilience | Graceful `SIGTERM` drain (≤35s, tested), synthetic-error → alert-propagation check, timed rollback dry-run (<5 min), smoke tests with autonomous rollback on 5xx |
 | ♿ Accessibility | WCAG 2.1 AA via an **executed** runtime audit (pa11y / axe-core against the running app) — audit-only or stub-only submissions are a BLOCKER |
-| 🎨 Design | OKLCH color space, full component state matrices (default/hover/focus/active/disabled), spring/physics-based motion (no generic bounce), no `#000000`, no AI-starter-pack slop |
+| 🎨 Design | OKLCH color space, full component state matrices (default/hover/focus/active/disabled), spring/physics-based motion (no generic bounce), no `#000000`, no AI-starter-pack slop — accelerated **by default** with an archetype-matched [`awesome-design-skills`](https://github.com/bergside/awesome-design-skills) skill (`npx typeui.sh pull <slug>`, the mandatory first Stylize step; skipped only if the tool can't run) reconciled into the OKLCH system, with the banned-pattern audit as final authority |
 | 📦 Handoff | 17-section `HANDOFF.md`, authored as `## N.` headings, gate-counted and placeholder-scanned before sign-off |
 | 🟢 Liveness | At sign-off the product is LIVE — the deployed URL (creds provided) or `http://localhost:<port>` + PID (no creds) returned **HTTP 200** on a re-probe, with the `curl` stdout captured as proof-of-work; deployable-but-dark is a BLOCKER |
 
@@ -310,7 +318,8 @@ These mechanics aren't vibes — they're implementations of peer-reviewed agent 
 
 - **Multi-agent debate** → *ChatEval* (Chen et al., 2023): isolated adversarial roles beat single-agent self-critique at catching hallucinations. → the **Apex Red Team**.
 - **Verbal reinforcement** → *Reflexion* (Shinn et al., 2023): converting raw environment feedback into linguistic self-reflection breaks failure loops. → **`<divergence_analysis>`**.
-- **LLM-as-OS memory** → *MemGPT* (Packer et al., 2023): paging state to a persistent filesystem defeats "lost in the middle" degradation. → **the `.studio/` tree**.
+- **LLM-as-OS memory** → *MemGPT* (Packer et al., 2023): paging state to a persistent filesystem defeats "lost in the middle" degradation. → **the `.studio/` tree** + the proactive **Context Engineering Protocol** (budget tiers, sub-agent offloading, lossless context checkpoints).
+- **Ownership-partitioned parallelism** → disjoint file/dir ownership + a single merge authority lets the build interior (P3/P4) run concurrently without the shared-state corruption that wrecks naive multi-agent coding — while the research gate and Apex Red Team gate stay sequential barriers. → the **Parallel Build Swarm**.
 
 ---
 
